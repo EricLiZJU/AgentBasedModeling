@@ -41,6 +41,7 @@ class VaccinationAgent(Agent):
     def step(self):
         self.move()
         self.infect()
+
         self.vaccinate()
 
 class VaccinationModel(Model):

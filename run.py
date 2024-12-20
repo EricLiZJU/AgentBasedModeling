@@ -2,12 +2,12 @@ from abm import VaccinationAgent, VaccinationModel
 import numpy as np
 import matplotlib.pyplot as plt
 
-width = 100
-height = 100
-num_agents = 1000
-infection_probability = 0.1
-vaccination_probability = 0.18
-initial_infection_probability = 0.05
+width = 1000
+height = 1000
+num_agents = 735
+infection_probability = 0.2
+vaccination_probability = 0.005
+initial_infection_probability = 0.4
 
 model = VaccinationModel(
     width=width,
