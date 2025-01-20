@@ -1,13 +1,19 @@
 from abm import VaccinationAgent, VaccinationModel
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 width = 1000
 height = 1000
-num_agents = 735
-infection_probability = 0.2
-vaccination_probability = 0.005
-initial_infection_probability = 0.4
+num_agents = 735                          # 全体人数
+infection_probability = 0.2               # 自然感染概率
+vaccination_probability = 0.008         # 疫苗自然接种率
+initial_infection_probability = 0.4       # 初始感染率
+infection_days = 90                       # 流感季持续时间
+medical_staff_ratio = 0.0117              # 健康工作者比例
+medical_staff_recommendation_probability = 0.08  # 健康工作者推荐概率
+OR = 6.69
+
 
 model = VaccinationModel(
     width=width,
@@ -15,11 +21,14 @@ model = VaccinationModel(
     num_agents=num_agents,
     infection_probability=infection_probability,
     vaccination_probability=vaccination_probability,
-    initial_infected_probability=initial_infection_probability
+    initial_infected_probability=initial_infection_probability,
+    OR=OR,
+    medical_staff_ratio = medical_staff_ratio,
+    medical_staff_recommendation_probability = medical_staff_recommendation_probability
 )
 
 
-for i in range(60):
+for i in range(infection_days):
     model.step()
 
 agent_data = model.datacollector.get_agent_vars_dataframe()

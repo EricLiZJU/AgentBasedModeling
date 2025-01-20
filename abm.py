@@ -3,6 +3,15 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 import random
+import pandas as pd
+
+from calculation import *
+
+"""
+pd.set_option('display.max_rows', None)  # 显示所有行
+pd.set_option('display.max_columns', None)  # 显示所有列
+pd.set_option('display.max_colwidth', None)  # 显示完整内容，不截断列
+"""
 
 class VaccinationAgent(Agent):
 
@@ -10,9 +19,10 @@ class VaccinationAgent(Agent):
     INFECTED = 1
     IMMUNE = 2
 
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, is_medical_staff, model):
         super().__init__(model)
         self.unique_id = unique_id
+        self.is_medical_staff = is_medical_staff                      #是否为健康工作者
         self.state = self.SUSCEPTIBLE
         self.vaccinated = False
         self.x = random.randrange(self.model.grid.width)
@@ -41,22 +51,39 @@ class VaccinationAgent(Agent):
     def step(self):
         self.move()
         self.infect()
-
         self.vaccinate()
 
 class VaccinationModel(Model):
 
-    def __init__(self, width, height, num_agents, infection_probability, vaccination_probability, initial_infected_probability):
+    def __init__(self,
+                 width,
+                 height,
+                 num_agents,
+                 infection_probability,
+                 vaccination_probability,
+                 initial_infected_probability,
+                 OR,
+                 medical_staff_ratio,
+                 medical_staff_recommendation_probability):
         super().__init__()
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
         self.schedule = RandomActivation(self)
-        self.infection_probability = infection_probability                    # 感染概率
-        self.vaccination_probability = vaccination_probability                # 疫苗接种概率
-        self.initial_infected_probability = initial_infected_probability      # 初始感染率
+        self.infection_probability = infection_probability                                           # 感染概率
+        self.vaccination_probability = vaccination_probability                                       # 疫苗接种概率
+        self.initial_infected_probability = initial_infected_probability # 初始感染率
+        self.OR = OR
+        self.medical_staff_ratio = medical_staff_ratio                                               # 健康工作者比例
+        self.medical_staff_recommendation_probability = medical_staff_recommendation_probability     # 健康工作者推荐概率
 
         for i in range(self.num_agents):
-            a = VaccinationAgent(i, self)
+
+            if random.random() < self.medical_staff_ratio:
+                is_medical_staff = True
+            else:
+                is_medical_staff = False
+
+            a = VaccinationAgent(i, is_medical_staff, self)
             self.schedule.add(a)
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
@@ -67,9 +94,20 @@ class VaccinationModel(Model):
             self.schedule.agents[idx].state = VaccinationAgent.INFECTED
 
         self.datacollector = DataCollector(
-            agent_reporters={"State": "state", "Vaccinated": "vaccinated"},
+            agent_reporters={"State": "state", "Vaccinated": "vaccinated", "is_medical_staff": "is_medical_staff"},
         )
 
+    def change_vaccination_probability(self, new_vaccination_probability):
+        self.vaccination_probability = new_vaccination_probability
+
+
     def step(self):
+        P = calculate_OR_to_recommended_vaccinate_probability(self.OR,
+                                                              self.num_agents,
+                                                              self.vaccination_probability,
+                                                              self.medical_staff_recommendation_probability)
+        print(P)
+        self.change_vaccination_probability(P)
+        print(self.vaccination_probability)
         self.datacollector.collect(self)
         self.schedule.step()
