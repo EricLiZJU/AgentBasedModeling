@@ -62,7 +62,8 @@ class VaccinationModel(Model):
                  infection_probability,
                  vaccination_probability,
                  initial_infected_probability,
-                 OR,
+                 OR_strategy_1,
+                 OR_strategy_2,
                  medical_staff_ratio,
                  medical_staff_recommendation_probability):
         super().__init__()
@@ -72,7 +73,8 @@ class VaccinationModel(Model):
         self.infection_probability = infection_probability                                           # 感染概率
         self.vaccination_probability = vaccination_probability                                       # 疫苗接种概率
         self.initial_infected_probability = initial_infected_probability # 初始感染率
-        self.OR = OR
+        self.OR_strategy_1 = OR_strategy_1
+        self.OR_strategy_2 = OR_strategy_2
         self.medical_staff_ratio = medical_staff_ratio                                               # 健康工作者比例
         self.medical_staff_recommendation_probability = medical_staff_recommendation_probability     # 健康工作者推荐概率
 
@@ -100,14 +102,26 @@ class VaccinationModel(Model):
     def change_vaccination_probability(self, new_vaccination_probability):
         self.vaccination_probability = new_vaccination_probability
 
-
-    def step(self):
-        P = calculate_OR_to_recommended_vaccinate_probability(self.OR,
+    # 接种者的三种推荐策略
+    # 策略一：健康工作者推荐策略
+    def step_strategy_1(self):
+        P = calculate_OR_to_recommended_vaccinate_probability(self.OR_strategy_1,
                                                               self.num_agents,
                                                               self.vaccination_probability,
                                                               self.medical_staff_recommendation_probability)
         print(P)
         self.change_vaccination_probability(P)
         print(self.vaccination_probability)
+        self.datacollector.collect(self)
+        self.schedule.step()
+
+    # 策略二：免费疫苗策略
+    def step_strategy_2(self, initial_vaccination_probability):
+        initial_vaccination_probability = initial_vaccination_probability
+        P = calculate_OR_to_recommended_vaccinate_probability(self.OR_strategy_2,
+                                                              self.num_agents,
+                                                              initial_vaccination_probability,
+                                                              self.medical_staff_recommendation_probability)
+        self.change_vaccination_probability(P)
         self.datacollector.collect(self)
         self.schedule.step()

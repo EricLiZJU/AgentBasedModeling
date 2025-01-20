@@ -12,7 +12,8 @@ initial_infection_probability = 0.4       # 初始感染率
 infection_days = 90                       # 流感季持续时间
 medical_staff_ratio = 0.0117              # 健康工作者比例
 medical_staff_recommendation_probability = 0.08  # 健康工作者推荐概率
-OR = 6.69
+OR_strategy_1 = 6.69
+OR_strategy_2 = 2.24
 
 
 model = VaccinationModel(
@@ -22,7 +23,8 @@ model = VaccinationModel(
     infection_probability=infection_probability,
     vaccination_probability=vaccination_probability,
     initial_infected_probability=initial_infection_probability,
-    OR=OR,
+    OR_strategy_1=OR_strategy_1,
+    OR_strategy_2=OR_strategy_2,
     medical_staff_ratio = medical_staff_ratio,
     medical_staff_recommendation_probability = medical_staff_recommendation_probability
 )
