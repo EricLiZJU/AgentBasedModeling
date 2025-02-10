@@ -30,7 +30,7 @@ model = VaccinationModel(
 )
 
 
-for i in range(infection_days):
+for i in range(90):
     model.step()
 
 agent_data = model.datacollector.get_agent_vars_dataframe()

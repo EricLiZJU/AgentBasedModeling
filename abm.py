@@ -112,8 +112,8 @@ class VaccinationModel(Model):
         print(P)
         self.change_vaccination_probability(P)
         print(self.vaccination_probability)
-        self.datacollector.collect(self)
-        self.schedule.step()
+        # self.datacollector.collect(self)
+        # self.schedule.step()
 
     # 策略二：免费疫苗策略
     def step_strategy_2(self, initial_vaccination_probability):
@@ -123,5 +123,10 @@ class VaccinationModel(Model):
                                                               initial_vaccination_probability,
                                                               self.medical_staff_recommendation_probability)
         self.change_vaccination_probability(P)
-        self.datacollector.collect(self)
+        # self.datacollector.collect(self)
+        # self.schedule.step()
+
+    def step(self):
+        self.step_strategy_2(0.008)
         self.schedule.step()
+        self.datacollector.collect(self)

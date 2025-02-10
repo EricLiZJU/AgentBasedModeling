@@ -19,7 +19,7 @@ def calculate_OR_to_recommended_vaccinate_probability(OR,
 
 if __name__=='__main__':
     P = 0.02
-    for i in range(90):
+    for i in range(int(90/7)):
         P = calculate_OR_to_recommended_vaccinate_probability(6.69, 735, P, 0.08)
         print(P)
 
