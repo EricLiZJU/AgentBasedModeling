@@ -19,6 +19,8 @@ class VaccinationAgent(Agent):
     INFECTED = 1
     IMMUNE = 2
 
+    move_distance_list = range(-200, 200)
+
     def __init__(self, unique_id, is_medical_staff, model):
         super().__init__(model)
         self.unique_id = unique_id
@@ -29,8 +31,8 @@ class VaccinationAgent(Agent):
         self.y = random.randrange(self.model.grid.height)
 
     def move(self):
-        dx = random.choice([-1, 0, 1])
-        dy = random.choice([-1, 0, 1])
+        dx = random.choice(self.move_distance_list)
+        dy = random.choice(self.move_distance_list)
         new_position = (self.x + dx) % self.model.grid.width, (self.y + dy) % self.model.grid.height
         self.model.grid.move_agent(self, new_position)
 
@@ -72,11 +74,12 @@ class VaccinationModel(Model):
         self.schedule = RandomActivation(self)
         self.infection_probability = infection_probability                                           # 感染概率
         self.vaccination_probability = vaccination_probability                                       # 疫苗接种概率
-        self.initial_infected_probability = initial_infected_probability # 初始感染率
+        self.initial_infected_probability = initial_infected_probability                             # 初始感染率
         self.OR_strategy_1 = OR_strategy_1
         self.OR_strategy_2 = OR_strategy_2
         self.medical_staff_ratio = medical_staff_ratio                                               # 健康工作者比例
         self.medical_staff_recommendation_probability = medical_staff_recommendation_probability     # 健康工作者推荐概率
+        self.count = 0                                                                               # 迭代次数
 
         for i in range(self.num_agents):
 
@@ -105,15 +108,16 @@ class VaccinationModel(Model):
     # 接种者的三种推荐策略
     # 策略一：健康工作者推荐策略
     def step_strategy_1(self):
-        P = calculate_OR_to_recommended_vaccinate_probability(self.OR_strategy_1,
-                                                              self.num_agents,
-                                                              self.vaccination_probability,
-                                                              self.medical_staff_recommendation_probability)
-        print(P)
-        self.change_vaccination_probability(P)
-        print(self.vaccination_probability)
-        # self.datacollector.collect(self)
-        # self.schedule.step()
+        if self.count % 7 == 0:   # 每隔7天推荐一次
+            P = calculate_OR_to_recommended_vaccinate_probability(self.OR_strategy_1,
+                                                                  self.num_agents,
+                                                                  self.vaccination_probability,
+                                                                  self.medical_staff_recommendation_probability)
+            # print(P)
+            self.change_vaccination_probability(P)
+            # print(self.vaccination_probability)
+            # self.datacollector.collect(self)
+            # self.schedule.step()
 
     # 策略二：免费疫苗策略
     def step_strategy_2(self, initial_vaccination_probability):
@@ -127,6 +131,7 @@ class VaccinationModel(Model):
         # self.schedule.step()
 
     def step(self):
-        self.step_strategy_2(0.008)
+        self.count += 1
+        self.step_strategy_1()
         self.schedule.step()
         self.datacollector.collect(self)
