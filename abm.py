@@ -38,10 +38,12 @@ class VaccinationAgent(Agent):
 
     def infect(self):
         if self.state == self.SUSCEPTIBLE:
+            if random.random() < self.model.infection_probability:
+                self.state = self.INFECTED
             neighbors = self.model.grid.get_neighbors(self.pos, moore=True, include_center=False)
             for neighbor in neighbors:
                 if isinstance(neighbor, VaccinationAgent) and neighbor.state == VaccinationAgent.INFECTED:
-                    if random.random() < self.model.infection_probability:
+                    if random.random() < 0.5:      # 密切接触者感染概率
                         self.state = self.INFECTED
                         break
 
@@ -69,17 +71,17 @@ class VaccinationModel(Model):
                  medical_staff_ratio,
                  medical_staff_recommendation_probability):
         super().__init__()
+        self.count = 0                                                                               # 天数
         self.num_agents = num_agents
         self.grid = MultiGrid(width, height, True)
         self.schedule = RandomActivation(self)
-        self.infection_probability = infection_probability                                           # 感染概率
-        self.vaccination_probability = vaccination_probability                                       # 疫苗接种概率
+        self.infection_probability = infection_probability[self.count]                               # 感染概率
+        self.vaccination_probability = vaccination_probability[self.count]                           # 疫苗接种概率
         self.initial_infected_probability = initial_infected_probability                             # 初始感染率
         self.OR_strategy_1 = OR_strategy_1
         self.OR_strategy_2 = OR_strategy_2
         self.medical_staff_ratio = medical_staff_ratio                                               # 健康工作者比例
         self.medical_staff_recommendation_probability = medical_staff_recommendation_probability     # 健康工作者推荐概率
-        self.count = 0                                                                               # 迭代次数
 
         for i in range(self.num_agents):
 
