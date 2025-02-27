@@ -5,18 +5,18 @@ from SVIRS import svirs
 import pandas as pd
 
 # SVIRS模型
-S, V, I, R = svirs()
+S, I, R = svirs()
 
 width = 1000
 height = 10000
 num_agents = 7350                      # 全体人数
 infection_probability = I              # 自然感染概率
-vaccination_probability = V            # 疫苗自然接种率
+vaccination_probability = 0.18            # 疫苗自然接种率
 initial_infection_probability = 0.001      # 初始感染率
 infection_days = 90                       # 流感季持续时间
 medical_staff_ratio = 0.0117              # 健康工作者比例
 # medical_staff_recommendation_probability = 0.33  # 健康工作者推荐概率
-medical_staff_recommendation_probability_list = np.arange(0.1, 0.6, 0.02)
+medical_staff_recommendation_probability_list = np.arange(0.1, 0.6, 0.05)
 OR_strategy_1 = 2
 # OR_strategy_1_list = np.arange(1, 5, 0.01)
 OR_strategy_2 = 2.24
