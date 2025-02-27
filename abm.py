@@ -76,7 +76,7 @@ class VaccinationModel(Model):
         self.grid = MultiGrid(width, height, True)
         self.schedule = RandomActivation(self)
         self.infection_probability = infection_probability[self.count]                               # 感染概率
-        self.vaccination_probability = vaccination_probability                        # 疫苗接种概率
+        self.vaccination_probability = vaccination_probability[self.count]                        # 疫苗接种概率
         self.initial_infected_probability = initial_infected_probability                             # 初始感染率
         self.OR_strategy_1 = OR_strategy_1
         self.OR_strategy_2 = OR_strategy_2

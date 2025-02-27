@@ -56,8 +56,8 @@ def svirs():
     plt.show()
 
 
-    return S, I, R
+    return S, V, I, R
 
 if __name__ == "__main__":
-    S, I, R = svirs()
+    S, V, I, R = svirs()
     print(I)
