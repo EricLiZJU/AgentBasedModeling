@@ -26,7 +26,7 @@ class DQN(nn.Module):
 
 # ----------------- 强化学习智能体类 -----------------
 class RLAgent:
-    def __init__(self, state_size, action_size, lr=0.01, gamma=0.9, epsilon=1.0, epsilon_min=0.01, epsilon_decay=0.995):
+    def __init__(self, state_size, action_size, lr=0.01, gamma=0.9, epsilon=0.9, epsilon_min=0.01, epsilon_decay=0.995):
         self.state_size = state_size         # 状态空间维度
         self.action_size = action_size       # 动作空间维度
         self.memory = deque(maxlen=2000)     # 经验回放池
@@ -96,13 +96,19 @@ class Buyer(Agent):
 
         if action == 1:
             self.model.lottery_pool.append(self)
+            self.model.participated_lottery_count += 1
+
+        if np.random.rand() <= self.model.won_possibility:
+            self.won_lottery = True
 
         # 简单的购房回报逻辑：买到且房价可承受，则正奖励
         reward = 0
+        if action == 1 and not self.won_lottery:
+            reward = -10
         if self.won_lottery and self.model.price_cap > self.income * self.houseprice_income_ratio:
-            reward = -1
+            reward = -20
         elif self.won_lottery and self.model.price_cap < self.income * self.houseprice_income_ratio:
-            reward = 1
+            reward = 50
 
         next_state = np.array([self.model.price_cap, self.income])
         self.rl_agent.remember(state, action, reward, next_state, False)
@@ -112,17 +118,17 @@ class Developer(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         self.rl_agent = RLAgent(state_size=2, action_size=3)  # 状态：[限价，供需比]
-        self.units = np.random.normal(loc=3165)  # 初始房源
+        self.units = np.random.normal(loc=20)  # 初始房源
 
     def step(self):
         state = np.array([self.model.price_cap, len(self.model.lottery_pool) / max(1, self.model.total_units)])
         action = self.rl_agent.act(state)
-        print("action: " + str(action))
-        self.units += action*100  # 控制新房供应增减
+        self.model.total_units += action*1  # 控制新房供应增减
+
 
         # 简单利润模型：限价 × 房源数量 - 成本
         profit = self.model.price_cap * self.units - 40 * self.units
-        reward = profit / 1000  # 归一化利润作为奖励
+        reward = profit / 100  # 归一化利润作为奖励
 
         next_state = np.array([self.model.price_cap, len(self.model.lottery_pool) / max(1, self.model.total_units)])
         self.rl_agent.remember(state, action, reward, next_state, False)
@@ -136,24 +142,28 @@ class Government(Agent):
     def step(self):
         state = np.array([len(self.model.lottery_pool) / max(1, self.model.total_units), self.model.price_cap])
         action = self.rl_agent.act(state)
-        self.model.price_cap += action  # 动作为限价调整
+        self.model.price_cap += action*10  # 动作为限价调整
 
-        reward = -abs(state[0] - 1)  # 越接近供需平衡，奖励越高
+        reward = -abs(state[0] - 1) * 5  # 越接近供需平衡，奖励越高
         next_state = np.array([len(self.model.lottery_pool) / max(1, self.model.total_units), self.model.price_cap])
         self.rl_agent.remember(state, action, reward, next_state, False)
 
 # ----------------- 主模型类 -----------------
 class HousingMarket(Model):
-    def __init__(self, num_buyers=84000, num_developers=20, initial_price_cap=395):
+    def __init__(self, num_buyers=10000, num_developers=10, initial_price_cap=395):
         super().__init__()
         self.num_buyers = num_buyers
         self.num_developers = num_developers
         self.price_cap = initial_price_cap
         self.total_units = 0
         self.lottery_pool = []
+        self.participated_lottery_count = 1
+        self.won_possibility = 0
 
         self.schedule = RandomActivation(self)
-        self.datacollector = DataCollector(model_reporters={"Price Cap": "price_cap", "Total Units": "total_units"})
+        self.datacollector = DataCollector(model_reporters={"Price Cap": "price_cap", "Total Units": "total_units",
+                                                            "Participated Lottery Count": "participated_lottery_count",
+                                                            "Won Possibility": "won_possibility"})
 
         # 添加政府
         self.government = Government(0, self)
@@ -167,19 +177,23 @@ class HousingMarket(Model):
 
         # 添加购房者
         for i in range(num_developers + 1, num_developers + num_buyers + 1):
-            income = np.random.normal(loc=61)  # 随机收入
+            income = np.random.normal(loc=25)  # 随机收入
             buyer = Buyer(i, self, income)
             self.schedule.add(buyer)
 
     def step(self):
+        self.won_possibility = self.total_units / self.participated_lottery_count
+        print("Participate Count:" + str(self.participated_lottery_count))
+        print("Won Possibility:" + str(self.won_possibility))
         self.lottery_pool = []  # 清空摇号池
+        self.participated_lottery_count = 1
         self.schedule.step()    # 所有代理执行动作
         self.datacollector.collect(self)  # 收集数据
         print("Total Units: " + str(self.total_units))
 
 # ----------------- 运行模型 -----------------
 model = HousingMarket()
-for i in range(50):  # 模拟50期
+for i in range(100):  # 模拟50期
     model.step()
 
 # ----------------- 可视化结果 -----------------
@@ -187,6 +201,26 @@ results = model.datacollector.get_model_vars_dataframe()
 print(results)
 plt.figure(figsize=(10,5))
 plt.plot(results["Price Cap"], label="Price Cap")
+plt.legend()
+plt.title("Evolution of Price Cap and Housing Supply", fontsize=14)
+plt.xlabel("Simulation Step", fontsize=12)
+plt.ylabel("Value", fontsize=12)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(results["Total Units"], label="Total Units")
+plt.legend()
+plt.title("Evolution of Price Cap and Housing Supply", fontsize=14)
+plt.xlabel("Simulation Step", fontsize=12)
+plt.ylabel("Value", fontsize=12)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10,5))
+plt.plot(results["Won Possibility"][1:], label="Won Possibility")
 plt.legend()
 plt.title("Evolution of Price Cap and Housing Supply", fontsize=14)
 plt.xlabel("Simulation Step", fontsize=12)
