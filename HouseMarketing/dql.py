@@ -12,7 +12,7 @@ from mesa import Agent, Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
 
-device = torch.device("mps")
+device = torch.device("cpu")
 
 # ----------------- 深度Q网络定义 -----------------
 class DQN(nn.Module):
@@ -113,7 +113,7 @@ class Buyer(Agent):
         if self.won_lottery and self.model.price_cap > self.income * self.houseprice_income_ratio:
             reward = -20
         elif self.won_lottery and self.model.price_cap < self.income * self.houseprice_income_ratio:
-            reward = 50
+            reward = 500
 
         next_state = np.array([self.model.price_cap, self.income])
         self.rl_agent.remember(state, action, reward, next_state, False)

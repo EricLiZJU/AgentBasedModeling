@@ -27,7 +27,7 @@ for ep in range(episodes):
     # 模拟开发行为
     if developed_grid[x, y] == 0:
         developed_grid[x, y] = 1  # 标记为已开发
-        reward = price_grid[x, y] - 100  # 奖励 = 房价 - 成本（假设成本250）
+        reward = price_grid[x, y] - 1  # 奖励 = 房价 - 成本（假设成本250）
     else:
         reward = -10  # 已开发地块再次开发无效，给予惩罚
 
@@ -37,6 +37,10 @@ for ep in range(episodes):
     q_table[x, y] = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
 
     development_history.append((x, y))  # 记录开发历史
+
+q_table_normalized = (q_table - np.min(q_table)) / (np.max(q_table) - np.min(q_table))
+price_grid_normalized = (price_grid - np.min(price_grid)) / (np.max(price_grid) - np.min(price_grid))
+
 
 # ---------- 可视化开发结果 ----------
 plt.figure(figsize=(6, 6))
@@ -49,7 +53,7 @@ plt.colorbar(label="Developed")
 plt.show()
 
 plt.figure(figsize=(6, 6))
-plt.imshow(q_table, cmap="coolwarm")
+plt.imshow(q_table_normalized, cmap="coolwarm")
 plt.title("Final Developed Land (Green = Developed)", fontsize=14)
 plt.xlabel("X Coordinate")
 plt.ylabel("Y Coordinate")
@@ -58,10 +62,10 @@ plt.colorbar(label="Q Value")
 plt.show()
 
 plt.figure(figsize=(6, 6))
-plt.imshow(price_grid, cmap="coolwarm")
+plt.imshow(price_grid_normalized, cmap="coolwarm")
 plt.title("Final Developed Land (Green = Developed)", fontsize=14)
 plt.xlabel("X Coordinate")
 plt.ylabel("Y Coordinate")
 plt.grid(False)
-plt.colorbar(label="Q Value")
+plt.colorbar(label="Price")
 plt.show()
