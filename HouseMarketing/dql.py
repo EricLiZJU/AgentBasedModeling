@@ -31,7 +31,7 @@ class DQN(nn.Module):
 
 # ----------------- 强化学习智能体类 -----------------
 class RLAgent:
-    def __init__(self, state_size, action_size, lr=0.01, gamma=0.9, epsilon=0.9, epsilon_min=0.01, epsilon_decay=0.995):
+    def __init__(self, state_size, action_size, lr=0.01, gamma=0.9, epsilon=0.1, epsilon_min=0.01, epsilon_decay=0.995):
         self.state_size = state_size         # 状态空间维度
         self.action_size = action_size       # 动作空间维度
         self.memory = deque(maxlen=2000)     # 经验回放池
@@ -96,24 +96,24 @@ class Buyer(Agent):
         self.houseprice_income_ratio = 21.4 #房价收入比
 
     def step(self):
+        self.won_lottery = False
         state = np.array([self.model.price_cap, self.income])  # 状态包含当前限价和收入
         action = self.rl_agent.act(state)  # 选择是否报名摇号
 
         if action == 1:
             self.model.lottery_pool.append(self)
             self.model.participated_lottery_count += 1
-
-        if np.random.rand() <= self.model.won_possibility:
-            self.won_lottery = True
+            if np.random.rand() <= self.model.won_possibility:
+                self.won_lottery = True
 
         # 简单的购房回报逻辑：买到且房价可承受，则正奖励
         reward = 0
         if action == 1 and not self.won_lottery:
-            reward = -10
+            reward = -1
         if self.won_lottery and self.model.price_cap > self.income * self.houseprice_income_ratio:
-            reward = -20
+            reward = -2
         elif self.won_lottery and self.model.price_cap < self.income * self.houseprice_income_ratio:
-            reward = 500
+            reward = 5000000000000000
 
         next_state = np.array([self.model.price_cap, self.income])
         self.rl_agent.remember(state, action, reward, next_state, False)
@@ -132,8 +132,8 @@ class Developer(Agent):
 
 
         # 简单利润模型：限价 × 房源数量 - 成本
-        profit = self.model.price_cap * self.units - 40 * self.units
-        reward = profit / 100  # 归一化利润作为奖励
+        profit = self.model.price_cap * self.units - 300 * self.units
+        reward = profit  # 归一化利润作为奖励
 
         next_state = np.array([self.model.price_cap, len(self.model.lottery_pool) / max(1, self.model.total_units)])
         self.rl_agent.remember(state, action, reward, next_state, False)
@@ -149,13 +149,13 @@ class Government(Agent):
         action = self.rl_agent.act(state)
         self.model.price_cap += action*10  # 动作为限价调整
 
-        reward = -abs(state[0] - 1) * 5  # 越接近供需平衡，奖励越高
+        reward = -abs(state[0] - 1) * 500  # 越接近供需平衡，奖励越高
         next_state = np.array([len(self.model.lottery_pool) / max(1, self.model.total_units), self.model.price_cap])
         self.rl_agent.remember(state, action, reward, next_state, False)
 
 # ----------------- 主模型类 -----------------
 class HousingMarket(Model):
-    def __init__(self, num_buyers=10000, num_developers=10, initial_price_cap=395):
+    def __init__(self, num_buyers=100, num_developers=10, initial_price_cap=395):
         super().__init__()
         self.num_buyers = num_buyers
         self.num_developers = num_developers
@@ -182,7 +182,7 @@ class HousingMarket(Model):
 
         # 添加购房者
         for i in range(num_developers + 1, num_developers + num_buyers + 1):
-            income = np.random.normal(loc=25)  # 随机收入
+            income = np.random.normal(loc=250)  # 随机收入
             buyer = Buyer(i, self, income)
             self.schedule.add(buyer)
 
