@@ -11,7 +11,7 @@ q_table = np.zeros((grid_size, grid_size))  # Q表，每个格子的价值估计
 # 强化学习参数
 alpha = 0.1      # 学习率
 gamma = 0.9      # 折扣因子
-epsilon = 0.2    # 探索率（初始时20%概率随机探索）
+epsilon = 0.1    # 探索率（初始时20%概率随机探索）
 episodes = 500    # 模拟总轮数
 
 # ---------- 模拟开发过程 ----------
@@ -27,7 +27,7 @@ for ep in range(episodes):
     # 模拟开发行为
     if developed_grid[x, y] == 0:
         developed_grid[x, y] = 1  # 标记为已开发
-        reward = price_grid[x, y] - 250  # 奖励 = 房价 - 成本（假设成本250）
+        reward = price_grid[x, y] - 100  # 奖励 = 房价 - 成本（假设成本250）
     else:
         reward = -10  # 已开发地块再次开发无效，给予惩罚
 

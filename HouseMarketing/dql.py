@@ -3,11 +3,16 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torchvision import transforms
+from torchvision import datasets
+import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from collections import deque
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
+
+device = torch.device("mps")
 
 # ----------------- 深度Q网络定义 -----------------
 class DQN(nn.Module):
@@ -37,7 +42,7 @@ class RLAgent:
         self.learning_rate = lr              # 学习率
 
         # 初始化DQN模型
-        self.model = DQN(state_size, action_size)
+        self.model = DQN(state_size, action_size).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
 
@@ -49,7 +54,7 @@ class RLAgent:
         # ε-贪婪策略选择动作
         if np.random.rand() <= self.epsilon:
             return random.choice([-1, 0, 1])  # 随机探索动作
-        state_tensor = torch.FloatTensor(state).unsqueeze(0)
+        state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
         action_values = self.model(state_tensor)
         return [-1, 0, 1][torch.argmax(action_values).item()]  # 选择Q值最大的动作
 
@@ -60,8 +65,8 @@ class RLAgent:
 
         minibatch = random.sample(self.memory, batch_size)
         for state, action, reward, next_state, done in minibatch:
-            state_tensor = torch.FloatTensor(state).unsqueeze(0)
-            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
+            state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
+            next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0).to(device)
 
             target = reward
             if not done:
@@ -192,12 +197,12 @@ class HousingMarket(Model):
         print("Total Units: " + str(self.total_units))
 
 # ----------------- 运行模型 -----------------
-model = HousingMarket()
+Model = HousingMarket()
 for i in range(100):  # 模拟50期
-    model.step()
+    Model.step()
 
 # ----------------- 可视化结果 -----------------
-results = model.datacollector.get_model_vars_dataframe()
+results = Model.datacollector.get_model_vars_dataframe()
 print(results)
 plt.figure(figsize=(10,5))
 plt.plot(results["Price Cap"], label="Price Cap")
