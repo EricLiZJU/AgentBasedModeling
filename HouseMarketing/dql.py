@@ -132,7 +132,7 @@ class Developer(Agent):
 
 
         # 简单利润模型：限价 × 房源数量 - 成本
-        profit = self.model.price_cap * self.units - 300 * self.units
+        profit = self.model.price_cap * self.units - 50 * self.units
         reward = profit  # 归一化利润作为奖励
 
         next_state = np.array([self.model.price_cap, len(self.model.lottery_pool) / max(1, self.model.total_units)])
@@ -149,13 +149,13 @@ class Government(Agent):
         action = self.rl_agent.act(state)
         self.model.price_cap += action*10  # 动作为限价调整
 
-        reward = -abs(state[0] - 1) * 500  # 越接近供需平衡，奖励越高
+        reward = -abs(state[0] - 1) * 10  # 越接近供需平衡，奖励越高
         next_state = np.array([len(self.model.lottery_pool) / max(1, self.model.total_units), self.model.price_cap])
         self.rl_agent.remember(state, action, reward, next_state, False)
 
 # ----------------- 主模型类 -----------------
 class HousingMarket(Model):
-    def __init__(self, num_buyers=100, num_developers=10, initial_price_cap=395):
+    def __init__(self, num_buyers=10000, num_developers=10, initial_price_cap=395):
         super().__init__()
         self.num_buyers = num_buyers
         self.num_developers = num_developers
@@ -182,7 +182,7 @@ class HousingMarket(Model):
 
         # 添加购房者
         for i in range(num_developers + 1, num_developers + num_buyers + 1):
-            income = np.random.normal(loc=250)  # 随机收入
+            income = np.random.normal(loc=25)  # 随机收入
             buyer = Buyer(i, self, income)
             self.schedule.add(buyer)
 

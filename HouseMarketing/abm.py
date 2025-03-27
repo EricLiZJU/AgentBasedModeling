@@ -1,4 +1,6 @@
 import random
+
+import numpy as np
 from mesa import Agent, Model
 from mesa.time import RandomActivation
 from mesa.space import MultiGrid
@@ -11,16 +13,62 @@ class HomeBuyer(Agent):
         super().__init__(unique_id, model)
         self.income = income
         self.is_lottery_winner = is_lottery_winner
+        self.participated = False
+
+        self.q_table = np.zeros((3, 2))
+        self.learning_rate = 0.1
+        self.discount_factor = 0.9
+        self.exploration_rate = 0.2
 
     def step(self):
-        # 如果是摇号中签者，表示购房者有资格购买房产
-        if self.is_lottery_winner:
-            self.buy_house()
+        state = self.get_state()
+        action = self.choose_action(state)
+        reward = self.execute_action(action)
+
+        next_state = self.get_state()
+        self.update_q_table(state, action, reward, next_state)
+
+
+    def get_state(self):
+        if self.income > 1000:
+            return 0
+        elif self.income > 500:
+            return 1
+        else:
+            return 2
+
+    def choose_action(self, state):
+        if random.uniform(0, 1) < self.exploration_rate:
+            return random.choice([0, 1])
+        else:
+            return np.argmax(self.q_table[state])
+
+    def execute_action(self, action):
+        self.participated = False
+        if action == 0:   # 参与摇号
+            self.participated = True
+            self.model.participated_count += 1
+            if self.is_lottery_winner and self.income > self.model.house_price:
+                self.buy_house()
+                return 5
+            elif self.is_lottery_winner and self.income <= self.model.house_price:
+                return -2
+            else:
+                return 0
+
+        elif action == 1:   # 等待观望
+            return 0
+
+    def update_q_table(self, state, action, reward, next_state):
+        best_next_action = np.argmax(self.q_table[next_state])
+        td_target = reward + self.discount_factor * self.q_table[next_state][best_next_action]
+        td_error = td_target - self.q_table[state][action]
+        self.q_table[state][action] += self.learning_rate * td_error
+
 
     def buy_house(self):
         # 这里可以根据购房者的收入、房价等因素模拟购房行为
         if self.income > self.model.house_price:
-            print(f"购房者 {self.unique_id} 购买了房子。")
             self.model.buyers += 1
 
 # 定义开发商代理
@@ -51,8 +99,10 @@ class Government(Agent):
     def run_lottery(self):
         # 摇号过程：随机选择一定比例的购房者为中签者
         for buyer in self.model.buyers_list:
-            if random.random() < 0.2:  # 20%的购房者中签
-                buyer.is_lottery_winner = True
+            buyer.is_lottery_winner = False
+            if buyer.participated:
+                if random.random() < 0.2:  # 20%的购房者中签
+                    buyer.is_lottery_winner = True
 
 # 定义模型
 class HousingMarketModel(Model):
@@ -64,15 +114,16 @@ class HousingMarketModel(Model):
         self.house_price = 1000  # 初始房价
         self.buyers_list = []
         self.buyers = 0
+        self.participated_count = 0
 
         # 收集数据
         self.datacollector = DataCollector(
-            model_reporters={"Buyer_Count": "buyers"}
+            model_reporters={"Buyer_Count": "buyers", "Participated_Count": "participated_count"}
         )
 
         # 创建购房者
         for i in range(num_buyers):
-            buyer = HomeBuyer(i, self, income=random.randint(500, 1500))
+            buyer = HomeBuyer(i, self, income=random.randint(100, 3000))
             self.schedule.add(buyer)
             self.buyers_list.append(buyer)
 
@@ -88,6 +139,7 @@ class HousingMarketModel(Model):
 
     def step(self):
         self.buyers = 0
+        self.participated_count = 0
         self.schedule.step()
         self.datacollector.collect(self)
 
